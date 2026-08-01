@@ -1,0 +1,37 @@
+# ===== 大模型文件（不传 GitHub）=====
+models/
+vosk-model-small-cn-0.22/
+vosk-model.zip
+GPT_weights_v2Pro/
+SoVITS_weights_v2Pro/
+
+# ===== 版权 Live2D 模型（米哈游角色）=====
+ui/assets/huohuo/
+ui/assets/*/
+
+# ===== API Key（敏感信息）=====
+providers.json
+*.env
+
+# ===== Python 缓存 =====
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+
+# ===== 测试文件 =====
+test_*.py
+
+# ===== 临时文件 =====
+*.wav
+*.tmp
+*.zip
+
+# ===== 文档生成脚本 =====
+generate_docx.js
+generate_pptx.py
+
+# ===== Office 临时文件 =====
+~$*
+*.tmp

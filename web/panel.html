@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HuoBot · 控制台</title>
+<style>
+  :root { --bg:#f5efe4; --bg-deep:#d7b99d; --panel:rgba(255,249,240,0.86); --line:rgba(87,57,34,0.14); --text:#2d2219; --muted:#6d5a4c; --accent:#ca5c36; --accent-strong:#8f3419; --green:#0d5c47; --blue:#2a5c8a; --orange:#b85c1a; --radius:20px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body { font-family:"Trebuchet MS","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; color:var(--text); background:radial-gradient(circle at top left,rgba(255,255,255,0.72),transparent 36%),radial-gradient(circle at bottom right,rgba(202,92,54,0.15),transparent 24%),linear-gradient(135deg,var(--bg) 0%,#ead7c0 42%,var(--bg-deep) 100%); overflow:hidden; }
+  button,select { font:inherit; cursor:pointer; }
+  .shell { display:grid; grid-template-columns:1fr 380px; height:100vh; padding:20px; gap:16px; overflow:hidden; }
+  @media(max-width:800px){ .shell{grid-template-columns:1fr;} }
+  .panel { border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); backdrop-filter:blur(18px); box-shadow:0 28px 70px rgba(70,37,18,0.12); overflow:hidden; display:flex; flex-direction:column; }
+  .panel-hd { padding:16px 20px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .panel-bd { padding:16px 20px; overflow-y:auto; flex:1; }
+  .sec-title { font-size:.73rem; text-transform:uppercase; letter-spacing:.18em; color:var(--accent-strong); margin:0; }
+  .badge { display:inline-flex; align-items:center; padding:5px 10px; border-radius:999px; font-size:.8rem; font-weight:700; }
+  .badge-on { color:var(--green); background:rgba(13,92,71,0.12); }
+  .badge-off { color:#8b1e1e; background:rgba(139,30,30,0.12); }
+  .muted { color:var(--muted); font-size:.85rem; }
+
+  .stat-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .stat { background:rgba(255,248,235,0.96); border:1px solid var(--line); border-radius:14px; padding:12px; text-align:center; }
+  .stat .v { font-size:1.5rem; font-weight:700; }
+  .stat .l { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
+
+  .set-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); }
+  .set-row:last-child { border-bottom:none; }
+  .set-label { font-size:.9rem; }
+  .set-desc { font-size:.75rem; color:var(--muted); }
+
+  .toggle { width:44px; height:24px; border-radius:12px; background:var(--line); cursor:pointer; position:relative; transition:background .3s; flex-shrink:0; }
+  .toggle.on { background:var(--accent); }
+  .toggle::after { content:""; position:absolute; width:20px; height:20px; border-radius:50%; background:#fff; top:2px; left:2px; transition:transform .3s; }
+  .toggle.on::after { transform:translateX(20px); }
+
+  select { background:rgba(255,248,235,0.96); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:.85rem; outline:none; }
+
+  .log { font-family:"SF Mono","Cascadia Code","Consolas",monospace; font-size:.75rem; line-height:1.8; max-height:220px; overflow-y:auto; }
+  .log-e { padding:2px 0; border-bottom:1px solid var(--line); display:flex; gap:8px; }
+  .log-t { color:var(--muted); flex-shrink:0; width:52px; }
+  .log-e.user .log-m { color:var(--blue); }
+  .log-e.agent .log-m { color:var(--accent-strong); }
+  .log-e.speak .log-m { color:var(--green); }
+  .log-e.thinking .log-m { color:var(--orange); }
+
+  .hist { max-height:100%; overflow-y:auto; }
+  .hist-i { padding:8px 10px; border-radius:10px; margin-bottom:4px; border-left:3px solid transparent; font-size:.85rem; }
+  .hist-i.user { border-left-color:var(--blue); background:rgba(42,92,138,0.05); }
+  .hist-i.agent { border-left-color:var(--accent); background:rgba(202,92,54,0.04); }
+  .hist-i .r { font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
+
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-thumb { background:rgba(166,81,49,0.3); border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- 左：控制 -->
+  <section class="panel">
+    <div class="panel-hd"><p class="sec-title">🦊 HuoBot 控制台</p><span id="badge" class="badge badge-on">在线</span></div>
+    <div class="panel-bd">
+      <div class="stat-row">
+        <div class="stat"><div class="v" style="color:var(--green)" id="v-tts">检测中</div><div class="l">语音引擎</div></div>
+        <div class="stat"><div class="v" style="color:var(--blue)" id="v-ai">--</div><div class="l">AI 大脑</div></div>
+        <div class="stat"><div class="v" id="v-uptime">00:00</div><div class="l">运行时间</div></div>
+        <div class="stat"><div class="v" id="v-msg">0</div><div class="l">消息数</div></div>
+      </div>
+
+      <p class="sec-title" style="margin-bottom:6px;">⚙️ 设置</p>
+      <div class="set-row"><div><div class="set-label">GPT-SoVITS 语音</div><div class="set-desc">启用克隆音色（关闭用Edge TTS）</div></div><div class="toggle on" id="tg-voice"></div></div>
+      <div class="set-row"><div><div class="set-label">GPT-SoVITS 音色</div><div class="set-desc">切换已训练的音色</div></div><select id="sel-voice" style="font-size:.8rem;"><option>加载中...</option></select></div>
+      <div class="set-row"><div><div class="set-label">AI 模型</div><div class="set-desc">API Key 在 providers.json 里填入</div></div><select id="sel-model"><option>加载中...</option></select></div>
+      <div class="set-row" style="margin-bottom:14px;"><div><div class="set-label">路由模式</div></div><select id="sel-route"><option value="agent_first" selected>Agent 优先</option><option value="auto">自动决策</option><option value="chat_only">纯聊天</option></select></div>
+
+      <p class="sec-title" style="margin-bottom:6px;">📊 Agent 日志</p>
+      <div class="log" id="log-box"><div class="muted">等待数据...</div></div>
+    </div>
+  </section>
+
+  <!-- 右：Live2D + 对话 -->
+  <section class="panel" style="display:flex;flex-direction:column;">
+    <div class="panel-hd"><p class="sec-title">🎭 Live2D 模型</p><select id="sel-l2d" style="font-size:.75rem;"><option>加载中...</option></select></div>
+    <div class="muted" style="padding:4px 20px;font-size:.7rem;">📁 新模型放 ui\assets\新文件夹\ 重启生效</div>
+    <div style="text-align:center;padding:12px;background:rgba(0,0,0,0.02);flex-shrink:0;" id="l2d-preview">
+      <img id="l2d-img" src="" style="max-width:120px;max-height:120px;border-radius:50%;display:none;" alt="">
+      <div class="muted" id="l2d-name">选择模型</div>
+    </div>
+    <div class="panel-hd"><p class="sec-title">📋 对话记录</p><button onclick="document.getElementById('hist-box').innerHTML=''" style="border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:.8rem;">清空</button></div>
+    <div class="panel-bd hist" id="hist-box" style="flex:1;"><div class="muted">暂无对话</div></div>
+  </section>
+</div>
+
+<script>
+var logIdx=0, msgN=0, start=Date.now();
+var API='http://127.0.0.1:18688';
+
+function poll(){
+  fetch(API+'/api/state').then(r=>r.json()).then(function(s){
+    document.getElementById('v-msg').textContent=s.msg_count||0;
+    document.getElementById('v-ai').textContent=s.ai_connected?'DeepSeek':'断开';
+    var m=Math.floor(s.uptime/60),h=Math.floor(m/60);
+    document.getElementById('v-uptime').textContent=(h>0?h+'时':'')+m%60+'分';
+    document.getElementById('badge').className='badge '+(s.ai_connected?'badge-on':'badge-off');
+    document.getElementById('badge').textContent=s.ai_connected?'在线':'离线';
+    // 语音引擎状态(服务器自检，无跨域)
+    var tts=s.tts_ready;
+    document.getElementById('v-tts').textContent=tts?'就绪':'等待中';
+    document.getElementById('v-tts').style.color=tts?'var(--green)':'var(--orange)';
+    // 开关状态
+    document.getElementById('tg-voice').className='toggle'+(s.voice_enabled?' on':'');
+    document.getElementById('sel-route').value=s.route_mode||'agent_first';
+  }).catch(function(){ document.getElementById('badge').className='badge badge-off';document.getElementById('badge').textContent='离线'; });
+}
+
+// === 轮询日志 ===
+function pollLogs(){
+  fetch(API+'/api/logs?after='+logIdx).then(r=>r.json()).then(function(data){
+    if(!data.length) return;
+    var box=document.getElementById('log-box');
+    if(box.querySelector('.muted')) box.innerHTML='';
+    data.forEach(function(e){
+      logIdx++;
+      var t=e.time||'';
+      box.innerHTML+='<div class="log-e '+e.category+'"><span class="log-t">'+t+'</span><span class="log-m">'+e.msg.substring(0,120)+'</span></div>';
+      if(e.category==='user'||e.category==='speak') addHistory(e.category,e.msg);
+    });
+    box.scrollTop=box.scrollHeight;
+    if(box.children.length>80) for(var i=0;i<10;i++) box.removeChild(box.firstChild);
+  }).catch(function(){});
+}
+
+function addHistory(role,msg){
+  var box=document.getElementById('hist-box');
+  if(box.querySelector('.muted')) box.innerHTML='';
+  box.innerHTML+='<div class="hist-i '+role+'"><div class="r">'+(role==='user'?'👤 用户':'🦊 藿藿')+'</div>'+msg.substring(0,150)+'</div>';
+  box.scrollTop=box.scrollHeight;
+}
+
+// === 开关 ===
+document.getElementById('tg-voice').onclick=function(){
+  fetch(API+'/api/toggle_voice'); this.classList.toggle('on');
+};
+document.getElementById('sel-route').onchange=function(){
+  fetch(API+'/api/route_mode?mode='+this.value);
+};
+
+// = Live2D列表 =
+var L2D_BASE='http://127.0.0.1:18666';
+fetch(API+'/api/live2d_models').then(r=>r.json()).then(function(data){
+  var sel=document.getElementById('sel-l2d'); sel.innerHTML='<option value="">无</option>';
+  data.models.forEach(function(m){ sel.innerHTML+='<option value="'+m.path+'">'+m.name+'</option>'; });
+  sel.onchange=function(){
+    if(this.value){
+      // 显示纹理预览
+      var parts=this.value.split('/');
+      var dir=parts[1];
+      var prefix=parts[2].replace('.model3.json','');
+      var texPath=L2D_BASE+'/assets/'+dir+'/'+prefix+'.8192/texture_00.png';
+      var img=document.getElementById('l2d-img');
+      img.src=texPath; img.style.display='inline-block';
+      document.getElementById('l2d-name').textContent=dir;
+      fetch(API+'/api/switch_live2d?path='+encodeURIComponent(this.value));
+    }
+  };
+});
+
+// = 模型列表 =
+fetch(API+'/api/models').then(r=>r.json()).then(function(data){
+  var sel=document.getElementById('sel-model'); sel.innerHTML='';
+  for(var k in data.models){
+    var m=data.models[k];
+    sel.innerHTML+='<option value="'+k+'"'+(k===data.current?' selected':'')+'>'+m.name+'</option>';
+  }
+  sel.onchange=function(){ fetch(API+'/api/switch_model?name='+this.value); };
+});
+
+// = 音色列表 =
+fetch(API+'/api/tts_voices').then(r=>r.json()).then(function(data){
+  var sel=document.getElementById('sel-voice'); sel.innerHTML='';
+  var names=Object.keys(data.voices);
+  if(!names.length){ sel.innerHTML='<option>无可用音色</option>'; return; }
+  names.forEach(function(n){
+    sel.innerHTML+='<option value="'+n+'"'+(n===data.current?' selected':'')+'>'+n+'</option>';
+  });
+  sel.onchange=function(){
+    fetch(API+'/api/switch_tts_voice?voice='+encodeURIComponent(this.value)).then(r=>r.json()).then(function(r){
+      if(!r.ok) alert('切换失败: '+r.error);
+    });
+  };
+});
+
+// === 启动轮询 ===
+poll(); setInterval(poll,3000);
+pollLogs(); setInterval(pollLogs,1000);
+</script>
+</body>
+</html>

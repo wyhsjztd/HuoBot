@@ -1,0 +1,19 @@
+# ===== 核心依赖 =====
+vosk>=0.3.0                   # 离线语音识别（中文支持）
+openai>=1.0.0                 # DeepSeek API (OpenAI 兼容)
+edge-tts>=6.1.0               # 免费 TTS 语音合成
+
+# ===== 音频 =====
+numpy>=1.24.0
+soundfile>=0.12.0
+sounddevice>=0.4.0
+pyaudio>=0.2.13
+
+# ===== 桌面窗口 + Live2D =====
+PyQt5>=5.15.0
+PyQtWebEngine>=5.15.0
+
+# ===== 工具 =====
+requests>=2.31.0
+pyyaml>=6.0
+pillow>=10.0.0

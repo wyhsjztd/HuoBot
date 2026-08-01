@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:transparent;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
+#container{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;position:relative}
+#subtitle-area{width:94%;display:flex;align-items:center;justify-content:center;z-index:20;position:absolute;top:58px;left:3%;padding:2px 0;min-height:26px}
+#subtitle{background:rgba(255,255,255,0.92);color:#5D4037;padding:6px 14px;border-radius:14px;font-size:14px;text-align:center;max-width:100%;word-break:break-word;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all .3s;display:inline-block;white-space:pre-wrap}
+#character-area{width:100%;height:430px;position:relative;flex-shrink:0;overflow:hidden}
+#live2d-canvas{width:400px;height:470px;position:absolute;top:-20px;left:0;opacity:0;transition:opacity .5s;pointer-events:none!important;z-index:1;display:block}
+#live2d-canvas.show{opacity:1}
+#input-area{width:92%;flex-shrink:0;z-index:999;align-items:center;pointer-events:auto;padding:4px 0 6px}
+#text-input{width:100%;padding:8px 14px;border:none;border-radius:18px;background:rgba(255,255,255,.8);color:#5D4037;font-size:14px;outline:none;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#text-input::placeholder{color:#BCAAA4}
+#status-dot{width:10px;height:10px;border-radius:50%;position:absolute;top:38px;right:15px;z-index:20;transition:all .4s}
+.status-idle{background:#81C784;box-shadow:0 0 6px #81C784}
+.status-listening{background:#64B5F6;box-shadow:0 0 10px #64B5F6;animation:pulse .8s infinite}
+.status-thinking{background:#FFB74D;box-shadow:0 0 10px #FFB74D;animation:pulse .5s infinite}
+.status-speaking{background:#E57373;box-shadow:0 0 10px #E57373}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.5}}
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="subtitle-area"><div id="subtitle">长按空格说话</div></div>
+  <div id="status-dot" class="status-idle"></div>
+  <div id="character-area"><canvas id="live2d-canvas"></canvas></div>
+  <div id="input-area">
+    <input id="text-input" type="text" placeholder="打字跟藿藿聊天..." autocomplete="off">
+  </div>
+</div>
+<script>
+var _ready=true;
+function setStatus(s){var d=document.getElementById('status-dot');if(d)d.className='status-'+s}
+function setEmotion(e){var s=document.getElementById('subtitle');var m={'开心':'嘻嘻~','紧张':'呜…','困了':'呼…','被吓到':'呜哇！','认真':'嗯！','尾巴模式':'哼！','平常':'长按空格说话'};if(s)s.textContent=m[e]||'长按空格说话'}
+function startLipSync(){var s=document.getElementById('subtitle');if(s)s.style.background='rgba(255,200,180,.9)'}
+function stopLipSync(){var s=document.getElementById('subtitle');if(s)s.style.background='rgba(255,255,255,.92)'}
+function showSubtitle(text,duration){var s=document.getElementById('subtitle');if(!s)return;s.textContent=text;if(duration>0){setTimeout(function(){if(s.textContent===text)s.textContent='长按空格说话'},duration*1000)}}
+window._ready=true;
+var _c=0;
+document.getElementById('text-input').addEventListener('keydown',function(e){if(e.key==='Enter'){var t=this.value.trim();if(t){_c++;document.title='INPUT:'+_c+':'+t;setTimeout(function(){document.title='HuoBot'},300);this.value=''}}});
+document.getElementById('text-input').addEventListener('mousedown',function(e){e.stopPropagation()});
+// ===== 空格按住说话 =====
+var _spaceDown=false;
+window.addEventListener('keydown',function(e){
+  if(e.key===' '||e.code==='Space'){
+    e.preventDefault();
+    if(!_spaceDown){
+      _spaceDown=true;
+      document.title='KEY:DOWN';
+      setTimeout(function(){ document.title='HuoBot'; },200);
+    }
+  }
+});
+window.addEventListener('keyup',function(e){
+  if(e.key===' '||e.code==='Space'){
+    if(_spaceDown){
+      _spaceDown=false;
+      document.title='KEY:UP';
+      setTimeout(function(){ document.title='HuoBot'; },200);
+    }
+  }
+});
+(function(){
+  function ld(u){return new Promise(function(r,j){var s=document.createElement('script');s.src=u;s.onload=r;s.onerror=function(){j(new Error(u))};document.head.appendChild(s)})}
+  async function init(){
+    try{
+      await ld('./libs/live2dcubismcore.min.js');await ld('./libs/live2d.min.js');
+      await ld('./libs/pixi.min.js');await ld('./libs/live2d-display-npm.min.js');
+      var c=document.getElementById('live2d-canvas');
+      var a=new PIXI.Application({view:c,width:400,height:470,backgroundAlpha:0,antialias:true});
+      var m=await PIXI.live2d.Live2DModel.from('./assets/huohuo/藿藿.model3.json');
+      m.scale.set(.065);m.x=200;m.y=370;m.anchor.set(.5,.5);a.stage.addChild(m);
+      c.classList.add('show');document.getElementById('subtitle').textContent='我在听呢~';
+      function an(){requestAnimationFrame(an);a.render()}an()
+    }catch(e){console.warn('Live2D:',e.message);
+      document.getElementById('subtitle').textContent='我在听呢~';
+      var img=document.createElement('img');
+      img.src='./assets/huohuo/藿藿.8192/texture_00.png';
+      img.style.cssText='width:180px;height:180px;border-radius:50%;position:absolute;top:50px;left:110px;animation:breathe 3s infinite';
+      document.getElementById('character-area').appendChild(img);
+      var s=document.createElement('style');s.textContent='@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}';
+      document.head.appendChild(s);
+    }
+  }
+  init()
+})()
+</script>
+</body>
+</html>
